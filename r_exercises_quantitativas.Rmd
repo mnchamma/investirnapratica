@@ -1,0 +1,210 @@
+library(readxl)
+library(infotheo)
+
+
+mediana <- function(lista){
+##É o elemento central da distribuição da variável, considerando que a variável 
+##esteja com seus n valores organizados de forma crescente
+  lista_sorted <- sort(lista) ## organizar de forma crescente
+  n <- length(lista_sorted) ## tamanho da amostra
+  if(n%%2 == 0){
+    indicador = (lista_sorted[n/2] + lista_sorted[(n/2)+1]) / 2
+  } else {
+    indicador = lista_sorted[(n+1)/2]
+  }
+  return(indicador)
+}
+
+media <- function(lista_indicador){
+##É média aritmética simples para a variável, ou seja, é a soma dos valores (Xi) 
+##contidos na variável dividido pela quantidade total de observações (n)
+  n <- length(lista_indicador)
+  soma <- sum(lista_indicador)
+  return(soma/n)
+}
+
+media_movel_lista <- function(lista_indicador,periodos){
+    lista_calculo = c()
+    if (length(lista_indicador) <= periodos || periodos <= 0){
+        print('Problemas no tamanho da amostra!!!')
+        return(0)
+    } else {
+        for (j in 1:periodos){
+            lista_calculo = c(lista_calculo,0)
+            print(j)
+        }
+        contador = 0
+        while ((contador+periodos) < length(lista_indicador)){
+            indicador = media(lista_indicador[contador:contador+periodos])
+            lista_calculo = c(lista_calculo,indicador)
+            contador = contador + 1
+        }
+    return(lista_calculo)
+    }
+}
+
+amplitude <- function(lista){
+## Apresenta a diferença entre o valor máximo e o valor mínimo de uma variável
+  lista_sorted <- sort(lista) ## organizar de forma crescente
+  n <- length(lista_sorted) ## tamanho da amostra
+  indicador = lista_sorted[n]-lista_sorted[1]
+  return(indicador)
+}
+
+var_stdv_amostra <- function(lista_indicador){
+## Mostra a dispersão das observações de uma variável em torno de sua média
+  n <- length(lista_indicador) ## tamanho da amostra
+  soma <- sum(lista_indicador)
+  media = soma/n
+  soma_var = 0
+  for (i in lista_indicador) {
+    soma_var = soma_var + (i - media)**2
+  }
+  var = soma_var / (n-1)
+## STDV ou desvio padrão é uma medida derivada da variância, tornando mais simples 
+## a interpretação da dispersão em torno da média
+  stdv = var**0.5
+  return(c(var,stdv,sd(lista_indicador)))
+}
+
+erro_padrao <- function(lista_indicador){
+##  É o desvio padrão da média da variável
+    n <- length(lista_indicador) ## tamanho da amostra
+    s <- var_stdv_amostra(lista_indicador)[2]
+    erro <- s/(n**0.5) 
+    return(erro)
+## Quanto maior o tamanho da amostra, menor o erro padrão na estimativa da 
+## média da variável → mais precisa é a média estimada
+}
+
+coeficiente_de_variacao <- function(lista_indicador){
+## É uma medida de dispersão relativa, pois relaciona o desvio padrão e a média 
+## de uma variável.
+    s <- var_stdv_amostra(lista_indicador)[2]
+    x <- media(lista_indicador)
+## Quanto menor o CV, mais homogêneos são os valores da  
+## variável e mais concentrados estão os valores em torno da média
+    cv <- (s/x)*100
+    return(cv)
+}
+
+assimetria_fisher <- function(lista_indicador){
+  n <- length(lista_indicador) ## tamanho da amostra
+  media <- media(lista_indicador)
+  soma_var_m3 <- 0
+  for (i in lista_indicador) {
+    soma_var_m3 <- soma_var_m3 + (i - media)^3
+  }
+  
+  m3 <- soma_var_m3 / n
+  s <- var_stdv_amostra(lista_indicador)[2]
+##  g1 = 0 indica curva simétrica
+##• g1 > 0 indica curva assimétrica positiva (cauda à direita)
+##• g1 < 0 indica curva assimétrica negativa (cauda à esquerda)
+  g1 <- ((n^2) * m3 ) / ((n-1) * (n-2) * (s^3))
+  return(g1)
+}
+
+curtose <- function(lista_indicador){
+  n <- length(lista_indicador) ## tamanho da amostra
+  media <- media(lista_indicador)
+  soma_var_m4 <- 0
+  for (i in lista_indicador) {
+    soma_var_m4 <- soma_var_m4 + (i - media)^4
+  }
+  m4 <- soma_var_m4 / n
+  s <- var_stdv_amostra(lista_indicador)[2]
+## g2 = 0 indica curva com distribuição normal
+## g2 > 0 indica curva com distribuição alongada
+## g2 < 0 indica curva com distribuição achatada
+
+  g2 <- ((n^2) * (n+1) * m4 ) / ((n-1) * (n-2) * (n-3) * (s^4)) - 3 * (((n-1)^2)/((n-2)*(n-3)))
+  return(g2)
+
+}
+
+correlacao_pearson <- function(lista_indicador1,lista_indicador2){
+## É utilizado para identificar a correlação entre duas varáveis quantitativas
+  if(length(lista_indicador1) != length(lista_indicador2)){
+  print("amostras com tamanhos diferentes")
+  return(0)
+  } else {
+    n <- length(lista_indicador1) ## tamanho da amostra 1
+    media1 <- media(lista_indicador1)
+    media2 <- media(lista_indicador2)
+    soma_cov = 0
+    for (i in 1:n) {
+      soma_cov <- soma_cov + (lista_indicador1[i] - media1) * (lista_indicador2[i] - media2) 
+    }
+    covariancia = soma_cov / (n-1)
+    s1 <- var_stdv_amostra(lista_indicador1)[2]
+    s2 <- var_stdv_amostra(lista_indicador2)[2]
+    correlacao <- covariancia / (s1*s2)
+    return(c(correlacao,covariancia))
+  }
+
+}
+
+
+## Distribuição de probabilidades
+
+## Variáveis discretas
+
+dist_uniforme_discreta <- function(lista_amostra){
+## Todos os possíveis valores têm a mesma probabilidade de ocorrência
+  prob = 1/length(lista_amostra)
+  return(prob)
+}
+
+dist_bernoulli <- function(p_sucesso){
+## Os valores da variável podem assumir apenas dois resultados possíveis, sendo 
+## que tais resultados são chamados de sucesso (x=1) ou fracasso (x=0)
+  x1 = 1
+  x2 = 0
+  prob1 = p_sucesso^x1 * (1-p_sucesso)^(1-x1)
+  prob2 = p_sucesso^x2 * (1-p_sucesso)^(1-x2)
+  return(c(prob1,prob2))
+}
+
+dist_binomial <- function(p_sucesso,n,k){
+## A distribuição binomial ocorre quando há (n) repetições independentes do 
+## experimento de Bernoulli e a probabilidade de sucesso (p) é constante em 
+## todas as repetições
+  prob = (factorial(n) / (factorial(n-k) * factorial(k))) * p_sucesso^k * (1-p_sucesso)^(n-k)
+  return(prob)
+}
+
+dist_binomial_negativa <- function(p_sucesso,x,k){
+## Na distribuição binomial negativa, são realizados (x) ensaios independentes 
+## de Bernoulli até que sejam obtidos (k) sucessos
+  prob = (factorial(x-1) / (factorial((x-1)-(k-1)) * factorial(k-1))) * p_sucesso^k * (1-p_sucesso)^(x-k)
+  return(prob)
+}
+
+dist_poisson <- function(k,lamb){
+## A distribuição Poisson indica a probabilidade do número de sucessos (k) em 
+## uma determinada exposição contínua
+  e = exp(1)
+  prob = (e^(-lamb) * lamb^k) / factorial(k)
+  return(prob)
+}
+
+
+## Variáveis contínuas
+
+dist_normal <- function(x,mean,stdv){
+##  É a distribuição Gaussiana, com curva em forma de sino
+  z = (x-mean) / stdv
+  e = exp(1)
+  prob = (1/(stdv * (2 * pi)^0.5)) * e^(-((x-mean)^2) / (2 * stdv ^ 2))
+  return(c(prob,z))
+}
+
+
+
+
+
+
+
+
+

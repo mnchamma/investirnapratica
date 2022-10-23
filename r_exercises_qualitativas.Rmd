@@ -1,0 +1,74 @@
+
+
+library(readxl)
+
+## ESTATÍSTICA I
+
+## Descritiva
+
+## Variáveis Qualitativas
+
+
+df = data.frame('Operadora'= c('Total Health','Viva Vida','Mena Saúde'),'Baixo'=c(40,32,24),'Médio'=c(16,24,32),'Alto'=c(12,16,4),stringsAsFactors = FALSE)
+
+df
+
+
+df[nrow(df) + 1,] = c('Total',sum(df['Baixo']),sum(df['Médio']),sum(df['Alto']))
+
+rownames(df) <- df$Operadora
+
+
+
+df$Operadora <- NULL
+
+df
+
+somas = c()
+for (row in 1:nrow(df)) { 
+    soma <- as.double(df[row, 'Baixo'])+as.double(df[row, 'Médio'])+as.double(df[row, 'Alto'])
+    somas = c(somas,soma)
+
+} 
+
+somas
+
+df['Total'] <- somas
+
+
+baixo = c()
+medio = c()
+alto = c()
+
+
+for (row in 1:nrow(df)) { 
+    freq_esperada_baixo = as.double(df[row, 'Total']) * as.double(tail(df['Baixo'],n=1)) / as.double(tail(df['Total'],n=1))
+    freq_esperada_medio = as.double(df[row, 'Total']) * as.double(tail(df['Médio'],n=1)) / as.double(tail(df['Total'],n=1))
+    freq_esperada_alto = as.double(df[row, 'Total']) * as.double(tail(df['Alto'],n=1)) / as.double(tail(df['Total'],n=1))
+    baixo = c(baixo,(as.double(df[row, 'Baixo'])-freq_esperada_baixo)**2/freq_esperada_baixo)
+    medio = c(medio,(as.double(df[row, 'Médio'])-freq_esperada_medio)**2/freq_esperada_medio)
+    alto = c(alto,(as.double(df[row, 'Alto'])-freq_esperada_alto)**2/freq_esperada_alto)
+
+} 
+
+df_qui_quadrado = data.frame('Baixo'=baixo,'Médio'=medio,'Alto'=alto)
+
+soma_quis = sum(df_qui_quadrado['Baixo']) + sum(df_qui_quadrado['Médio']) + sum(df_qui_quadrado['Alto'])
+
+p_value = pchisq(soma_quis,4,lower.tail = FALSE)
+
+critical_value = qchisq(0.05,4,lower.tail=FALSE)
+
+## H0: as variáveis tem associação = 0, ou se associam de forma aleatória.
+## H1: as variáveis tem associação != 0, ou a associação entre as variáveis não se dá de forma aleatória.
+
+if (soma_quis > critical_value){
+  print('Devemos rejeitar H0 -> As variáveis têm associação relevante!')
+  print(soma_quis)
+  print(critical_value)
+} else {
+  print('Não podemos rejeitar H0 -> As variáveis NÃO têm associação relevante!')
+  print(soma_quis)
+  print(critical_value)
+}
+
